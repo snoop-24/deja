@@ -1,0 +1,31 @@
+# Python env for the EverOS memory server (473MB — never commit)
+.venv-everos/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets — the Groq key feeds both the agent loop and EverOS
+.env
+.env*.local
+.env.local
+everos.toml
+
+# EverOS local data (markdown memory store, SQLite, LanceDB indexes)
+everos-home/
+.everos/
+
+# Recorded demo runs are COMMITTED on purpose — see DESIGN.md.
+# The demo must not depend on a live API at showtime.
+!secondrun/data/recorded.json
+
+# Editor
+.vscode/
+.idea/
