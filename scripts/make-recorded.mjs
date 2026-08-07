@@ -33,6 +33,34 @@ if (!src) {
 
 const t = JSON.parse(readFileSync(src, 'utf8'));
 
+/**
+ * THE KEY SHOWN ON SCREEN IS THE CURRENT FILE, NOT THE TRANSCRIPT'S COPY.
+ *
+ * A transcript freezes answer-key.json as it stood when the run happened. That
+ * is right for the facts — those must be exactly what the run was scored
+ * against — but wrong for the surrounding prose, which has since been corrected
+ * (the file used to claim the key was written by hand by Sid; it was drafted by
+ * Claude and reviewed by Sid). Replaying the frozen copy would put a correction
+ * we already made back on screen.
+ *
+ * So: take the metadata from the live file, and refuse to run unless its facts
+ * and task are byte-identical to the ones the run was actually scored against.
+ * If they ever diverge, the honest move is to re-run, not to re-label.
+ */
+const currentKey = JSON.parse(readFileSync(join(process.cwd(), 'data', 'answer-key.json'), 'utf8'));
+
+if (
+  JSON.stringify(currentKey.facts) !== JSON.stringify(t.key.facts) ||
+  currentKey.task !== t.key.task
+) {
+  console.error(
+    'data/answer-key.json no longer matches the key this run was scored against.\n' +
+      'Showing the current key beside these scores would misrepresent them.\n' +
+      'Re-run the gap test against the current key instead.',
+  );
+  process.exit(1);
+}
+
 const baselineSrc = t.runs.find((r) => r.label === 'baseline');
 const warmSrc = t.runs.find((r) => r.label === 'optimized (warm)');
 
@@ -142,7 +170,8 @@ const equivalentCount = history.filter((r) => r.equivalent).length;
 const payload = {
   ranAt: t.ranAt,
   model: t.model,
-  key: t.key,
+  // Current file, verified above to carry the same facts the run was scored on.
+  key: currentKey,
   allowance: {
     searches: t.limits.MAX_STEPS,
     queries: t.limits.MAX_STEPS * t.limits.MAX_QUERIES_PER_TURN,
