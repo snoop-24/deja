@@ -180,15 +180,28 @@ Side by side: cost, tokens, calls, elapsed, score. Then the saving as a percenta
 
 Rehearse to **2:40**. The slack is not optional.
 
-> **Every dollar figure below is a placeholder.** $0.31 and $0.08 are stand-ins for whatever Friday's runs actually measure. Rehearse with them, then substitute the real numbers after the 15:00 recording. Do not say a number on stage that you have not measured that afternoon.
+> **The figures below are now MEASURED, not placeholders.** Replaced 6 Aug 2026 from `secondrun/data/recorded.json` — a real run on `openai/gpt-oss-120b`, reproduced three times at 86.1% / 82.8% / 88.6%.
+>
+> | | first run | second run |
+> |---|---|---|
+> | cost | **$0.0035** | **$0.0005** |
+> | model calls | 6 | **1** |
+> | corpus queries | 12 | **0** |
+> | score | 6/8 | 6/8 — **the same six** |
+>
+> Sub-cent figures are hard to say and hard to read at three metres. **Pick one phrasing at rehearsal and stay with it:**
+> - **(a) literal** — *"Thirty-five hundredths of a cent. Five hundredths of a cent."*
+> - **(b) per thousand runs** — *"Three dollars fifty. Fifty cents."* Same arithmetic on the same measurement, scaled — say "per thousand runs" once so it is not mistaken for the per-run figure.
+>
+> Re-record before the demo if anything changes, and **do not say a number you have not measured that day.**
 
 | Time | Screen | Say |
 |---|---|---|
 | **0:00–0:20** | Task and answer key visible | *"This is a hard research job, and these eight facts are the answer. I wrote them down before I ran anything. Two agents, same job, same model. Watch the price."* → **Run** |
 | **0:20–1:10** | Both running, costs climbing | *"Left one is an ordinary agent. It searches once per question, re-reads what it already knows, uses the big model for everything. Right one does the same job — it just doesn't take the long way round."* |
-| **1:10–1:40** | Both scores complete | *"Both got eight out of eight. Here's the key — count them."* **← PAUSE. Let the room look.** |
-| **1:40–2:10** | Costs side by side | *"Thirty-one cents. Eight cents. Same answer, same score, quarter of the price. Nothing on this screen came from the AI — it counted its own tokens, I multiplied by Groq's published prices, and that's the whole calculation."* |
-| **2:10–2:35** | Receipt | *"The savings aren't magic. It batched three searches into one, stopped when it had the answer instead of using its whole allowance, and sent the easy steps to a smaller model. That's it."* |
+| **1:10–1:40** | Both scores complete | *"Both got the same six out of eight. Not six each — the **same** six. Here's the key — count them."* **← PAUSE. Let the room look.** |
+| **1:40–2:10** | Costs side by side | *"Three dollars fifty per thousand runs. Fifty cents. Same six facts, a seventh of the price. Nothing on this screen came from the AI — it counted its own tokens, I multiplied by Groq's published prices, and that's the whole calculation."* |
+| **2:10–2:35** | Receipt | *"The saving isn't magic and it isn't a smarter agent. The first run made six searches. The second made none — it already knew. That's the whole product."* |
 | **2:35–2:45** | Stop. Look up. | *"Everyone's trying to make AI answers better. This one makes the same answer cheaper — and shows you the arithmetic."* **Stop talking.** |
 
 **The three moments that win it:** the pause on the answer key, the two cost figures side by side, and saying out loud that no number came from the model. If short on time, cut 2:10 — never those.
@@ -336,10 +349,13 @@ Build both buttons. Groq's speed makes live viable in a way it wasn't before.
 > *"This is a hard research job, and these eight facts are the answer. I wrote them down before I ran anything. Two agents, same job, same model. Watch the price."*
 
 **The turn (both scores complete):**
-> *"Both got eight out of eight. Here's the key — count them."*
+> *"Both got the same six out of eight. Not six each — the same six. Here's the key, count them."*
 
 **The number:**
-> *"Thirty-one cents. Eight cents. Same answer, quarter of the price."*
+> *"Three dollars fifty per thousand runs. Fifty cents. Same six facts, a seventh of the price."*
+
+**If asked why six and not eight** — concede it flatly, it costs nothing:
+> *"Neither run got all eight. The second one reproduced the first exactly, gaps included — that's the point. It's not a better agent, it's the same agent not paying twice."*
 
 **The honesty line (this is the differentiator — do not skip it):**
 > *"Nothing on this screen came from the AI. It counted its own tokens, I multiplied by Groq's published prices, and that's the whole calculation."*
