@@ -1,6 +1,6 @@
 {
   "task": "Meridian Haulage runs 400 trucks across the Germany-Poland border and must replace its telematics platform. Using only the corpus, recommend exactly one vendor and support the recommendation with: the per-truck monthly price Meridian would actually pay at 400 units, the ECTR annex this fleet is bound by, the minimum certified firmware build for the recommended platform, its measured p95 telemetry latency, its hardware lead time at 400 units, and the specific disqualifying fact for each vendor you reject.",
-  "writtenAt": "Written by hand by Sid on 2026-08-06, before any run was executed. Committed to git before the first measured run.",
+  "writtenAt": "Drafted by Claude from the corpus on 2026-08-06 and committed before any run was executed. Reviewed fact by fact and approved by Sid on 2026-08-06, after the runs but WITHOUT any fact or accept string being changed - the key is byte-identical to the version the first run was scored against. The load-bearing property is that the key was fixed BEFORE any run and has not moved since, which git history shows.",
   "notes": [
     "Every fact below is recoverable from data/corpus/ and from nowhere else - the vendors, the regulation and the register are fictional, so no model can answer from prior knowledge. It has to search.",
     "Matching is literal substring, case-insensitive, commas stripped (see lib/score.ts). No model grades anything.",

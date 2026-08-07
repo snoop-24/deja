@@ -19,8 +19,9 @@
  * run that used memory — so wherever it appears, it means the same thing.
  */
 @theme {
-  --color-paper: #faf9f6;
-  --color-panel: #f4f2ed;
+  --color-paper: #ffffff;
+  /* Neutral, not warm: a cream chip reads yellow against true white. */
+  --color-panel: #f2f2f2;
   --color-graphite: #17140f;
   --color-graphite-muted: #5f584c;
   --color-graphite-faint: #8b8377;
