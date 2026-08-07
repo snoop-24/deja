@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rote",
+  title: "Deja",
   description:
     "Agents redo work they have already done. We keep a memory of how they solved it — same answer, a fraction of the price.",
 };

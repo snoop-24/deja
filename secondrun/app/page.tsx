@@ -14,7 +14,7 @@ import { GlyphField } from "@/components/GlyphField";
  *   wordmark letter  128px   = 2 cells
  */
 
-const WORDMARK = ["R", "O", "T", "E"];
+const WORDMARK = ["D", "E", "J", "A"];
 
 const VALUE_BLOCKS = [
   {

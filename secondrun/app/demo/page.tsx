@@ -7,7 +7,7 @@ import { PlaceholderBanner } from '@/components/PlaceholderBanner';
 import { TaskCard } from '@/components/TaskCard';
 
 export const metadata: Metadata = {
-  title: 'Rote — demo',
+  title: 'Deja — demo',
   description:
     'The same research job run twice: once cold, once with memory of how it was solved.',
 };

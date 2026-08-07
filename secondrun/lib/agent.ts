@@ -82,7 +82,7 @@ const MAX_QUERIES_PER_TURN = 2;
 const MAX_OUTPUT_TOKENS = 900;
 const TPM_TARGET = 5200;
 
-const AGENT_ID = 'secondrun-procurement';
+const AGENT_ID = 'deja-procurement';
 
 /**
  * The allowance BOTH modes are given. Identical for baseline and optimized —
@@ -473,11 +473,11 @@ export async function runAgent(
     try {
       await drainRateWindow();
       const now = Date.now();
-      await addMessages(`secondrun-${now}`, [
+      await addMessages(`deja-${now}`, [
         { sender_id: agentId, role: 'user', timestamp: now, content: task },
         { sender_id: agentId, role: 'assistant', timestamp: now + 1, content: finalOutput },
       ]);
-      await flush(`secondrun-${now}`);
+      await flush(`deja-${now}`);
     } catch {
       // Storing is best-effort. A failed write costs the NEXT run its saving;
       // it must never cost THIS run its result.
