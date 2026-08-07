@@ -25,8 +25,14 @@ import { isEquivalent, divergence, type AnswerKey } from '@/lib/score';
 
 // fs and long-running fetches — this cannot run on the edge runtime.
 export const runtime = 'nodejs';
-// Two agent runs plus EverOS extraction, against a rate-limited free tier.
-export const maxDuration = 800;
+// Vercel Hobby caps this at 300s and rejects the deploy above it.
+//
+// 300s is NOT enough for a live run: two agent runs plus EverOS extraction
+// against a rate-limited free tier measured ~450s. That is fine, because the
+// deployed demo replays data/recorded.json and never calls this route — but do
+// not read this number as evidence that a live run fits. It does not.
+// `next dev` ignores maxDuration entirely, so local runs are unaffected.
+export const maxDuration = 300;
 
 export interface RunResponse {
   ranAt: string;

@@ -234,6 +234,7 @@
     "modelCalls": 6,
     "searchQueries": 12,
     "elapsedMs": 187104,
+    "corpusSource": "unknown",
     "memoryUsed": false,
     "memoryRecall": "",
     "used": {
@@ -326,6 +327,7 @@
     "modelCalls": 1,
     "searchQueries": 0,
     "elapsedMs": 1569,
+    "corpusSource": "unknown",
     "memoryUsed": true,
     "memoryRecall": "[episodes] On 2026-08-07 03:04 UTC, secondrun-procurement-1786071365505 initiated a procurement recommendation for Meridian Haulage's telematics platform replacement. The recommendation was for Kestrel Telemetry's FleetLink 3 platform. The per-truck monthly price for 400 units would be €18.40, with a base tier price of €16.90 and a cross-border corridor supplement of €1.50. The platform satisfies the DE/PL cross-border certification requirement as per Annex C (registered in ECTR-NL-0412). The minimum certified firmware build for FleetLink 3 is 4.7.2. The measured p95 telemetry latency is 340 ms, well under the 500 ms ceiling. The hardware lead time for 400 units is 21 days. Vantor was rejected due to a disqualifying fact, which was not specified.",
     "used": {
@@ -338,5 +340,88 @@
   "equivalent": true,
   "divergedOn": [],
   "costBasis": "Dollar figures are published Groq list prices multiplied by measured token counts from the API usage field. Free-tier usage is not billed — this is real arithmetic on real measurements, not money that left an account.",
-  "provenance": "Reshaped from a measured run: gap-test-2026-08-07T03-04-29-493Z.json. No figure was recomputed or invented."
+  "provenance": "Reshaped from a measured run: gap-test-2026-08-07T03-04-29-493Z.json. No figure was recomputed or invented.",
+  "corpusStore": "unknown",
+  "history": {
+    "rule": "Every run on openai/gpt-oss-120b with a completed warm run, started on or after 2026-08-07T03:00:00.000Z. Before this, the optimized prompt still invited the warm run to improve on the recalled answer rather than reproduce it, so those runs measure a different agent. Runs on other models are excluded for the same reason.",
+    "runs": [
+      {
+        "ranAt": "2026-08-07T03:04:29.508Z",
+        "baselineScore": 6,
+        "warmScore": 6,
+        "outOf": 8,
+        "reductionPercent": 86.06218279524033,
+        "equivalent": true,
+        "divergedOn": [],
+        "isReplayed": true
+      },
+      {
+        "ranAt": "2026-08-07T03:15:02.406Z",
+        "baselineScore": 8,
+        "warmScore": 6,
+        "outOf": 8,
+        "reductionPercent": 82.76327632763277,
+        "equivalent": false,
+        "divergedOn": [
+          "orbaline_outage",
+          "vantor_residency"
+        ],
+        "isReplayed": false
+      },
+      {
+        "ranAt": "2026-08-07T03:23:44.316Z",
+        "baselineScore": 8,
+        "warmScore": 6,
+        "outOf": 8,
+        "reductionPercent": 88.57686503510268,
+        "equivalent": false,
+        "divergedOn": [
+          "orbaline_outage",
+          "vantor_residency"
+        ],
+        "isReplayed": false
+      },
+      {
+        "ranAt": "2026-08-07T17:28:08.560Z",
+        "baselineScore": 7,
+        "warmScore": 5,
+        "outOf": 8,
+        "reductionPercent": 82.85181733457595,
+        "equivalent": false,
+        "divergedOn": [
+          "firmware",
+          "vantor_residency"
+        ],
+        "isReplayed": false
+      }
+    ],
+    "equivalentCount": 1,
+    "total": 4,
+    "excluded": [
+      {
+        "ranAt": "2026-08-07T01:59:05.013Z",
+        "reason": "different model (llama-3.1-8b-instant)"
+      },
+      {
+        "ranAt": "2026-08-07T02:51:01.614Z",
+        "reason": "predates the current optimized prompt"
+      },
+      {
+        "ranAt": "2026-08-07T03:41:57.467Z",
+        "reason": "no completed warm run"
+      },
+      {
+        "ranAt": "2026-08-07T04:44:45.684Z",
+        "reason": "no completed warm run"
+      },
+      {
+        "ranAt": "2026-08-07T01:08:51.242Z",
+        "reason": "predates the current optimized prompt"
+      },
+      {
+        "ranAt": "2026-08-07T00:33:15.071Z",
+        "reason": "predates the current optimized prompt"
+      }
+    ]
+  }
 }

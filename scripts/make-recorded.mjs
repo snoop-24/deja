@@ -20,7 +20,7 @@
  * run, it does not go on screen.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { reductionPercent } from '../secondrun/lib/pricing.ts';
 import { isEquivalent, divergence } from '../secondrun/lib/score.ts';
@@ -81,6 +81,64 @@ function toAgentRun(r, mode, memoryRecall) {
 const baseline = toAgentRun(baselineSrc, 'baseline', '');
 const optimized = toAgentRun(warmSrc, 'optimized', t.recallPreview);
 
+/**
+ * EVERY COMPARABLE RUN, NOT JUST THIS ONE.
+ *
+ * The demo replays one run, and that run is the best of several. Showing it
+ * without saying so would be the single most misleading thing on the page — so
+ * the page carries the whole set and the audience can see the spread.
+ *
+ * The inclusion rule is stated rather than curated: same model as the replayed
+ * run, a warm run that completed, and started at or after PROMPT_SETTLED. No
+ * run meeting those conditions is omitted, including the ones that undercut the
+ * claim. Earlier runs are excluded for a stated reason, not quietly dropped.
+ */
+const PROMPT_SETTLED = '2026-08-07T03:00:00.000Z';
+const PROMPT_SETTLED_REASON =
+  'Before this, the optimized prompt still invited the warm run to improve on ' +
+  'the recalled answer rather than reproduce it, so those runs measure a ' +
+  'different agent. Runs on other models are excluded for the same reason.';
+
+const dir = join(process.cwd(), 'data');
+const history = [];
+const excluded = [];
+const seenRanAt = new Set();
+
+for (const f of readdirSync(dir).filter((x) => x.startsWith('gap-test-')).sort()) {
+  const other = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+  // Two filenames held the same run before the script wrote its own timestamped
+  // name. Counting it twice would overstate the sample.
+  if (seenRanAt.has(other.ranAt)) continue;
+  seenRanAt.add(other.ranAt);
+
+  const b = other.runs.find((r) => r.label === 'baseline');
+  const w = other.runs.find((r) => r.label === 'optimized (warm)');
+
+  const reason =
+    !b || !w ? 'no completed warm run'
+    : other.model !== t.model ? `different model (${other.model})`
+    : other.ranAt < PROMPT_SETTLED ? 'predates the current optimized prompt'
+    : null;
+
+  if (reason) {
+    excluded.push({ ranAt: other.ranAt, reason });
+    continue;
+  }
+
+  history.push({
+    ranAt: other.ranAt,
+    baselineScore: b.score.score,
+    warmScore: w.score.score,
+    outOf: b.score.outOf,
+    reductionPercent: reductionPercent(b.totals.total, w.totals.total),
+    equivalent: isEquivalent(b.score, w.score),
+    divergedOn: divergence(b.score, w.score),
+    isReplayed: other.ranAt === t.ranAt,
+  });
+}
+
+const equivalentCount = history.filter((r) => r.equivalent).length;
+
 const payload = {
   ranAt: t.ranAt,
   model: t.model,
@@ -101,6 +159,24 @@ const payload = {
     'counts from the API usage field. Free-tier usage is not billed — this is real ' +
     'arithmetic on real measurements, not money that left an account.',
   provenance: `Reshaped from a measured run: ${src.split('/').pop()}. No figure was recomputed or invented.`,
+  // 'unknown' for transcripts recorded before runs started reporting their
+  // corpus store. The demo may not claim Snowflake on the strength of a run
+  // that cannot evidence it — see AgentRun.corpusSource.
+  corpusStore: baseline.corpusSource,
+  /**
+   * Every comparable run, replayed one included. Render this. The cost
+   * reduction holds across all of them; fact-parity does not, and the page must
+   * say so rather than let one run stand in for the set.
+   */
+  history: {
+    rule:
+      `Every run on ${t.model} with a completed warm run, started on or after ` +
+      `${PROMPT_SETTLED}. ${PROMPT_SETTLED_REASON}`,
+    runs: history,
+    equivalentCount,
+    total: history.length,
+    excluded,
+  },
 };
 
 const out = join(process.cwd(), 'data', 'recorded.json');
@@ -113,4 +189,15 @@ console.log(`optimized   ${optimized.score.score}/${optimized.score.outOf}  ${op
 console.log(`corpus      baseline: ${baseline.corpusSource}   optimized: ${optimized.corpusSource}`);
 console.log(`reduction   ${payload.reductionPercent.toFixed(1)}%`);
 console.log(`equivalent  ${payload.equivalent ? 'YES' : 'NO — ' + payload.divergedOn.join(', ')}`);
+
+console.log(`\nall ${history.length} comparable runs (rule: same model, warm run completed, prompt settled):`);
+for (const r of history) {
+  console.log(
+    `  ${r.ranAt}  base ${r.baselineScore}/${r.outOf}  warm ${r.warmScore}/${r.outOf}  ` +
+      `${r.reductionPercent.toFixed(1)}% cheaper  equivalent ${r.equivalent ? 'YES' : 'no'}` +
+      `${r.isReplayed ? '   <- replayed by the demo' : ''}`,
+  );
+}
+console.log(`  cost reduction held in ${history.length}/${history.length}, fact-parity in ${equivalentCount}/${history.length}`);
+console.log(`  excluded: ${excluded.length} run(s)`);
 console.log(`\nwrote ${out}`);
