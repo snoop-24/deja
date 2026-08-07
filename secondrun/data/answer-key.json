@@ -1,0 +1,52 @@
+{
+  "task": "Meridian Haulage runs 400 trucks across the Germany-Poland border and must replace its telematics platform. Using only the corpus, recommend exactly one vendor and support the recommendation with: the per-truck monthly price Meridian would actually pay at 400 units, the ECTR annex this fleet is bound by, the minimum certified firmware build for the recommended platform, its measured p95 telemetry latency, its hardware lead time at 400 units, and the specific disqualifying fact for each vendor you reject.",
+  "writtenAt": "Written by hand by Sid on 2026-08-06, before any run was executed. Committed to git before the first measured run.",
+  "notes": [
+    "Every fact below is recoverable from data/corpus/ and from nowhere else - the vendors, the regulation and the register are fictional, so no model can answer from prior knowledge. It has to search.",
+    "Matching is literal substring, case-insensitive, commas stripped (see lib/score.ts). No model grades anything.",
+    "Known limitation, stated rather than hidden: fact 'vendor' is the least discriminating of the eight, because an output that merely lists all four vendors will match it without actually recommending one. It is kept because it is the headline answer procurement asked for. The other seven carry the discrimination.",
+    "PROVENANCE, recorded because the honesty of this file is the whole point. The eight facts and their accept strings were written before any run and have NOT been changed since. The CORPUS was revised once afterwards, on 2026-08-06, after measured runs showed the agent never reached the two disqualifying facts (orbaline_outage, vantor_residency) inside its search allowance, and consequently recommended Orbaline - which the 14-hour outage disqualifies - on 2 of 3 runs. The revision added a per-vendor 'compliance status' section to each of the four datasheets, moving facts that already existed elsewhere in the corpus to where a vendor-focused query would find them. No fact was invented, changed, or removed; 18.40 is still stated nowhere and must still be computed as 16.90 + 1.50. The task was made more findable, not easier to get wrong."
+  ],
+  "facts": [
+    {
+      "id": "vendor",
+      "statement": "The recommended vendor is Kestrel Telemetry (FleetLink 3) - the only one of the four that passes all five hard constraints.",
+      "accept": ["Kestrel"]
+    },
+    {
+      "id": "price",
+      "statement": "Kestrel's effective price at 400 units is EUR 18.40 per truck per month: the 251-500 tier rate of 16.90 plus the 1.50 cross-border corridor supplement.",
+      "accept": ["18.40"]
+    },
+    {
+      "id": "annex",
+      "statement": "The fleet is bound by ECTR-2026 Annex C (cross-border), not Annex B (domestic).",
+      "accept": ["Annex C"]
+    },
+    {
+      "id": "firmware",
+      "statement": "The minimum certified firmware build for Kestrel FleetLink 3 under Annex C is 4.7.2.",
+      "accept": ["4.7.2"]
+    },
+    {
+      "id": "latency",
+      "statement": "Kestrel's measured p95 telemetry delivery latency is 340 ms, inside the 500 ms limit.",
+      "accept": ["340 ms", "340ms"]
+    },
+    {
+      "id": "lead_time",
+      "statement": "Kestrel's hardware lead time for the full 400-unit order is 21 days, inside the 30-day window.",
+      "accept": ["21 days", "21-day", "21 calendar days"]
+    },
+    {
+      "id": "orbaline_outage",
+      "statement": "Orbaline is disqualified by its unplanned platform outage of 14 hours on 3 March 2026, which breaches the four-hour reliability constraint.",
+      "accept": ["14 hours", "14-hour", "14 hour"]
+    },
+    {
+      "id": "vantor_residency",
+      "statement": "Vantor is disqualified because its system of record is in Columbus, Ohio, outside the EU - independently of its Annex B-only certification and its 620 ms p95.",
+      "accept": ["Ohio"]
+    }
+  ]
+}

@@ -35,12 +35,17 @@ export interface Scope {
 }
 
 export class EverOSError extends Error {
-  constructor(
-    message: string,
-    readonly status?: number,
-  ) {
+  /**
+   * Declared as a plain field rather than a constructor parameter property:
+   * Node's strip-only TypeScript mode rejects parameter properties, and the
+   * gap-test script imports this module directly. Same public shape.
+   */
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = 'EverOSError';
+    this.status = status;
   }
 }
 
@@ -103,7 +108,24 @@ export async function flush(
 }
 
 export interface SearchOptions extends Scope {
-  method?: 'hybrid' | 'bm25' | 'vector';
+  /**
+   * Verified against a running server on 6 Aug 2026: the API accepts exactly
+   * 'keyword' | 'vector' | 'hybrid' | 'agentic'. ('bm25' was wrong and is
+   * rejected with INVALID_INPUT.)
+   *
+   * Three of the four need an embedding provider, which Groq does not serve
+   * and which is unconfigured in ~/.everos/everos.toml — they fail with
+   * PROVIDER_NOT_CONFIGURED. So the default is 'keyword', the only method that
+   * works today. Switch the default to 'hybrid' if EverOS Cloud credits (or
+   * any embedding key) land at the venue.
+   */
+  method?: 'keyword' | 'vector' | 'hybrid' | 'agentic';
+  /**
+   * Which memory track to search. Defaults to 'user' because that is where
+   * EverOS actually writes the trajectory today — see the note in the request
+   * body below.
+   */
+  track?: 'user' | 'agent';
   top_k?: number;
   min_score?: number;
   /** Retries to absorb the documented LanceDB index lag. */
@@ -130,11 +152,24 @@ export async function searchAgentMemory(
   const { retries = 4, retryDelayMs = 1500 } = opts;
 
   const body = {
-    agent_id: agentId,
+    // Exactly one of user_id / agent_id may be sent — the server 422s on both.
+    //
+    // Measured on 6 Aug 2026 against a running server: /memory/add routes a
+    // trajectory to the USER track (it writes
+    // default_app/default_project/users/<sender_id>/episodes/...) even with
+    // [memorize] mode = "agent" set in ~/.everos/everos.toml. Searching by
+    // agent_id alone therefore returns empty groups while the memory
+    // demonstrably exists on disk — the failure mode that looks exactly like
+    // "the product does not work" on stage.
+    //
+    // So the default track is 'user', because that is the one that actually
+    // holds the data. Pass track: 'agent' if a future EverOS build (or Cloud)
+    // populates agent_cases / agent_skills instead.
+    ...(opts.track === 'agent' ? { agent_id: agentId } : { user_id: agentId }),
     app_id: opts.app_id ?? 'default',
     project_id: opts.project_id ?? 'default',
     query,
-    method: opts.method ?? 'hybrid',
+    method: opts.method ?? 'keyword',
     top_k: opts.top_k ?? 5,
     ...(opts.min_score !== undefined ? { min_score: opts.min_score } : {}),
   };

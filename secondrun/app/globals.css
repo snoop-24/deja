@@ -1,26 +1,133 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * The hero must fit one screen with no scrolling, and the wordmark band is
+ * expensive in height. On a short laptop everything tightens; only on a tall
+ * display does the full 64px rhythm and the double-height band come back.
+ */
+@custom-variant tall (@media (min-height: 1000px));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/*
+ * One palette for both routes.
+ *
+ * This was two: a paper-light landing and a dark /demo. The demo is now light
+ * as well, which is also the better choice for the room — a projector adds
+ * light, so a dark slide washes out grey in anything but a blacked-out hall,
+ * while near-white paper stays legible.
+ *
+ * Monochrome, with a single accent. The accent marks exactly one idea — the
+ * run that used memory — so wherever it appears, it means the same thing.
+ */
+@theme {
+  --color-paper: #faf9f6;
+  --color-panel: #f4f2ed;
+  --color-graphite: #17140f;
+  --color-graphite-muted: #5f584c;
+  --color-graphite-faint: #8b8377;
+  --color-rule: #17140f0b;
+  --color-rule-strong: #17140f24;
+
+  /* The second run, and the cost reduction it produces. */
+  --color-accent: #a8481f;
+  --color-accent-soft: #f3e5dd;
+
+  /* Placeholder banner only — never used for data. */
+  --color-amber: #7a5d12;
+  --color-amber-soft: #f7f0d8;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Every figure that counts up is tabular, so digits never reflow mid-tick. */
+.figure {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* The small-caps label that sits above every block of data on /demo. */
+.text-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-graphite-faint);
+}
+
+/* Feed rows enter once, on arrival. Cheap enough to hand-roll; no library. */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.step-in {
+  animation: step-in 260ms ease-out both;
+}
+
+/* Hero entrance: everything arrives on the same curve, staggered by delay. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 1400ms cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+
+/* The bar that sweeps under the headline. */
+@keyframes wipe {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.wipe {
+  transform-origin: left;
+  animation: wipe 1300ms cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+
+/*
+ * The hairline grid the pages sit on. Square, 64px, anchored at the viewport
+ * origin — so any horizontal padding that is a multiple of 64 puts the text's
+ * left edge exactly on a grid line.
+ */
+.grid-paper {
+  background-image:
+    linear-gradient(to right, var(--color-rule) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-rule) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-in,
+  .rise,
+  .wipe {
+    animation: none;
+  }
 }

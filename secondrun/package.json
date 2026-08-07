@@ -6,10 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "quota": "node --env-file=.env.local ../scripts/quota.mjs",
+    "gap": "node --env-file=.env.local ../scripts/gap-test.mjs --model=openai/gpt-oss-120b",
+    "gap:70b": "node --env-file=.env.local ../scripts/gap-test.mjs --model=llama-3.3-70b-versatile",
+    "gap:baseline": "node --env-file=.env.local ../scripts/gap-test.mjs --model=openai/gpt-oss-120b --only=baseline"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "next": "16.3.0",
+    "openai": "^7.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

@@ -1,0 +1,342 @@
+{
+  "ranAt": "2026-08-07T03:04:29.508Z",
+  "model": "openai/gpt-oss-120b",
+  "key": {
+    "task": "Meridian Haulage runs 400 trucks across the Germany-Poland border and must replace its telematics platform. Using only the corpus, recommend exactly one vendor and support the recommendation with: the per-truck monthly price Meridian would actually pay at 400 units, the ECTR annex this fleet is bound by, the minimum certified firmware build for the recommended platform, its measured p95 telemetry latency, its hardware lead time at 400 units, and the specific disqualifying fact for each vendor you reject.",
+    "writtenAt": "Written by hand by Sid on 2026-08-06, before any run was executed. Committed to git before the first measured run.",
+    "notes": [
+      "Every fact below is recoverable from data/corpus/ and from nowhere else - the vendors, the regulation and the register are fictional, so no model can answer from prior knowledge. It has to search.",
+      "Matching is literal substring, case-insensitive, commas stripped (see lib/score.ts). No model grades anything.",
+      "Known limitation, stated rather than hidden: fact 'vendor' is the least discriminating of the eight, because an output that merely lists all four vendors will match it without actually recommending one. It is kept because it is the headline answer procurement asked for. The other seven carry the discrimination.",
+      "PROVENANCE, recorded because the honesty of this file is the whole point. The eight facts and their accept strings were written before any run and have NOT been changed since. The CORPUS was revised once afterwards, on 2026-08-06, after measured runs showed the agent never reached the two disqualifying facts (orbaline_outage, vantor_residency) inside its search allowance, and consequently recommended Orbaline - which the 14-hour outage disqualifies - on 2 of 3 runs. The revision added a per-vendor 'compliance status' section to each of the four datasheets, moving facts that already existed elsewhere in the corpus to where a vendor-focused query would find them. No fact was invented, changed, or removed; 18.40 is still stated nowhere and must still be computed as 16.90 + 1.50. The task was made more findable, not easier to get wrong."
+    ],
+    "facts": [
+      {
+        "id": "vendor",
+        "statement": "The recommended vendor is Kestrel Telemetry (FleetLink 3) - the only one of the four that passes all five hard constraints.",
+        "accept": [
+          "Kestrel"
+        ]
+      },
+      {
+        "id": "price",
+        "statement": "Kestrel's effective price at 400 units is EUR 18.40 per truck per month: the 251-500 tier rate of 16.90 plus the 1.50 cross-border corridor supplement.",
+        "accept": [
+          "18.40"
+        ]
+      },
+      {
+        "id": "annex",
+        "statement": "The fleet is bound by ECTR-2026 Annex C (cross-border), not Annex B (domestic).",
+        "accept": [
+          "Annex C"
+        ]
+      },
+      {
+        "id": "firmware",
+        "statement": "The minimum certified firmware build for Kestrel FleetLink 3 under Annex C is 4.7.2.",
+        "accept": [
+          "4.7.2"
+        ]
+      },
+      {
+        "id": "latency",
+        "statement": "Kestrel's measured p95 telemetry delivery latency is 340 ms, inside the 500 ms limit.",
+        "accept": [
+          "340 ms",
+          "340ms"
+        ]
+      },
+      {
+        "id": "lead_time",
+        "statement": "Kestrel's hardware lead time for the full 400-unit order is 21 days, inside the 30-day window.",
+        "accept": [
+          "21 days",
+          "21-day",
+          "21 calendar days"
+        ]
+      },
+      {
+        "id": "orbaline_outage",
+        "statement": "Orbaline is disqualified by its unplanned platform outage of 14 hours on 3 March 2026, which breaches the four-hour reliability constraint.",
+        "accept": [
+          "14 hours",
+          "14-hour",
+          "14 hour"
+        ]
+      },
+      {
+        "id": "vantor_residency",
+        "statement": "Vantor is disqualified because its system of record is in Columbus, Ohio, outside the EU - independently of its Annex B-only certification and its 620 ms p95.",
+        "accept": [
+          "Ohio"
+        ]
+      }
+    ]
+  },
+  "allowance": {
+    "searches": 6,
+    "queries": 12,
+    "passagesPerQuery": 2,
+    "outputTokensPerCall": 900
+  },
+  "baseline": {
+    "mode": "baseline",
+    "model": "openai/gpt-oss-120b",
+    "steps": [
+      {
+        "label": "Searching: Meridian Haulage telematics platform 400 trucks Germany Poland · vendor telematics platform price per truck per month 400 units",
+        "cost": {
+          "inputTokens": 623,
+          "outputTokens": 110,
+          "inputCost": 0.00009345,
+          "outputCost": 0.000066,
+          "total": 0.00015945,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 532
+      },
+      {
+        "label": "Searching: Vendor A telematics platform pricing tier 400 units · Vendor B telematics latency p95 · Vendor C firmware build certified · ECTR annex telematics",
+        "cost": {
+          "inputTokens": 1414,
+          "outputTokens": 83,
+          "inputCost": 0.00021209999999999998,
+          "outputCost": 0.0000498,
+          "total": 0.00026189999999999997,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 588
+      },
+      {
+        "label": "Searching: Kestrel Telemetry compliance annex · Kestrel latency p95",
+        "cost": {
+          "inputTokens": 2552,
+          "outputTokens": 63,
+          "inputCost": 0.0003828,
+          "outputCost": 0.0000378,
+          "total": 0.0004206,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 384
+      },
+      {
+        "label": "Searching: Orbaline Freight Cloud compliance annex · Orbaline latency p95",
+        "cost": {
+          "inputTokens": 3616,
+          "outputTokens": 42,
+          "inputCost": 0.0005424,
+          "outputCost": 0.0000252,
+          "total": 0.0005675999999999999,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 61365
+      },
+      {
+        "label": "Searching: Drayfoss Mobility Corridor compliance annex · Drayfoss latency p95",
+        "cost": {
+          "inputTokens": 4675,
+          "outputTokens": 44,
+          "inputCost": 0.00070125,
+          "outputCost": 0.000026399999999999998,
+          "total": 0.00072765,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 61212
+      },
+      {
+        "label": "Writing the procurement brief",
+        "cost": {
+          "inputTokens": 5599,
+          "outputTokens": 900,
+          "inputCost": 0.00083985,
+          "outputCost": 0.00054,
+          "total": 0.00137985,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 62968
+      }
+    ],
+    "finalOutput": "**Procurement Recommendation – Meridian Haulage (400‑truck DE/PL corridor)**  \n\n| Item | Detail |\n|------|--------|\n| **Recommended vendor** | **Kestrel Telemetry – FleetLink 3** |\n| **Per‑truck monthly price (400 units)** | Base tier price **€16.90** / truck / month (251‑500 tier) + Cross‑border corridor supplement **€1.50** / truck / month = **€18.40** / truck / month【06‑pricing‑schedule‑2026.md†L1-L9】【06‑pricing‑schedule‑2026.md†L13-L19】 |\n| **Regulatory annex** | **Annex C** (registered in ECTR‑NL‑0412) – satisfies the DE/PL cross‑border certification requirement【02‑kestrel‑datasheet.md†L7-L9】 |\n| **Minimum certified firmware build** | **4.7.2** (minimum certified build for FleetLink 3)【02‑kestrel‑datasheet.md†L7-L9】 |\n| **Measured p95 telemetry latency** | **340 ms** (well under the 500 ms ceiling)【09‑latency‑benchmark‑q2‑2026.md†L7-L9】 |\n| **Hardware lead time for 400 units** | **21 days** (full‑order delivery)【02‑kestrel‑datasheet.md†L11-L13】 |\n| **Why each other vendor is rejected** |  |\n| • **Vantor (",
+    "score": {
+      "score": 6,
+      "outOf": 8,
+      "facts": [
+        {
+          "id": "vendor",
+          "statement": "The recommended vendor is Kestrel Telemetry (FleetLink 3) - the only one of the four that passes all five hard constraints.",
+          "hit": true,
+          "matchedOn": "Kestrel"
+        },
+        {
+          "id": "price",
+          "statement": "Kestrel's effective price at 400 units is EUR 18.40 per truck per month: the 251-500 tier rate of 16.90 plus the 1.50 cross-border corridor supplement.",
+          "hit": true,
+          "matchedOn": "18.40"
+        },
+        {
+          "id": "annex",
+          "statement": "The fleet is bound by ECTR-2026 Annex C (cross-border), not Annex B (domestic).",
+          "hit": true,
+          "matchedOn": "Annex C"
+        },
+        {
+          "id": "firmware",
+          "statement": "The minimum certified firmware build for Kestrel FleetLink 3 under Annex C is 4.7.2.",
+          "hit": true,
+          "matchedOn": "4.7.2"
+        },
+        {
+          "id": "latency",
+          "statement": "Kestrel's measured p95 telemetry delivery latency is 340 ms, inside the 500 ms limit.",
+          "hit": true,
+          "matchedOn": "340 ms"
+        },
+        {
+          "id": "lead_time",
+          "statement": "Kestrel's hardware lead time for the full 400-unit order is 21 days, inside the 30-day window.",
+          "hit": true,
+          "matchedOn": "21 days"
+        },
+        {
+          "id": "orbaline_outage",
+          "statement": "Orbaline is disqualified by its unplanned platform outage of 14 hours on 3 March 2026, which breaches the four-hour reliability constraint.",
+          "hit": false,
+          "matchedOn": null
+        },
+        {
+          "id": "vantor_residency",
+          "statement": "Vantor is disqualified because its system of record is in Columbus, Ohio, outside the EU - independently of its Annex B-only certification and its 620 ms p95.",
+          "hit": false,
+          "matchedOn": null
+        }
+      ]
+    },
+    "totalCost": {
+      "inputTokens": 18479,
+      "outputTokens": 1242,
+      "inputCost": 0.0027718499999999997,
+      "outputCost": 0.0007452,
+      "total": 0.00351705
+    },
+    "modelCalls": 6,
+    "searchQueries": 12,
+    "elapsedMs": 187104,
+    "memoryUsed": false,
+    "memoryRecall": "",
+    "used": {
+      "searches": 5,
+      "queries": 12,
+      "queryUtilization": 1
+    }
+  },
+  "optimized": {
+    "mode": "optimized",
+    "model": "openai/gpt-oss-120b",
+    "steps": [
+      {
+        "label": "Writing the procurement brief",
+        "cost": {
+          "inputTokens": 1060,
+          "outputTokens": 552,
+          "inputCost": 0.000159,
+          "outputCost": 0.0003312,
+          "total": 0.0004902,
+          "model": "openai/gpt-oss-120b",
+          "discounted": false
+        },
+        "factsConfirmed": [],
+        "elapsedMs": 1568
+      }
+    ],
+    "finalOutput": "**Procurement Brief – Meridian Haulage Telemetry Platform Replacement**\n\n| Item | Detail |\n|------|--------|\n| **Recommended Vendor** | **Kestrel Telemetry** |\n| **Platform** | FleetLink 3 |\n| **Per‑truck Monthly Price (400 trucks)** | **€18.40** (base tier €16.90 + cross‑border corridor supplement €1.50) |\n| **Regulatory Annex (ECTR)** | **Annex C**, registered in **ECTR‑NL‑0412** (covers the DE/PL cross‑border corridor) |\n| **Minimum Certified Firmware Build** | **4.7.2** |\n| **Measured p95 Telemetry Latency** | **340 ms** (well under the 500 ms ceiling) |\n| **Hardware Lead Time (400 units)** | **21 days** |\n| **Rejected Vendor(s) & Disqualifying Fact** | **Vantor** – the specific disqualifying fact was **not specified** in the source material. |\n\n**Recommendation Rationale**  \nKestrel Telemetry’s FleetLink 3 meets all mandatory requirements for Meridian Haulage’s 400‑truck, Germany‑Poland operation: it is certified for the DE/PL corridor under Annex C, runs the required minimum firmware (4.7.2), delivers a p95 latency of 340 ms, and can be supplied within 21 days. At the required volume, the total cost per truck per month is €18.40, which is the most economical and compliant option among the evaluated vendors.",
+    "score": {
+      "score": 6,
+      "outOf": 8,
+      "facts": [
+        {
+          "id": "vendor",
+          "statement": "The recommended vendor is Kestrel Telemetry (FleetLink 3) - the only one of the four that passes all five hard constraints.",
+          "hit": true,
+          "matchedOn": "Kestrel"
+        },
+        {
+          "id": "price",
+          "statement": "Kestrel's effective price at 400 units is EUR 18.40 per truck per month: the 251-500 tier rate of 16.90 plus the 1.50 cross-border corridor supplement.",
+          "hit": true,
+          "matchedOn": "18.40"
+        },
+        {
+          "id": "annex",
+          "statement": "The fleet is bound by ECTR-2026 Annex C (cross-border), not Annex B (domestic).",
+          "hit": true,
+          "matchedOn": "Annex C"
+        },
+        {
+          "id": "firmware",
+          "statement": "The minimum certified firmware build for Kestrel FleetLink 3 under Annex C is 4.7.2.",
+          "hit": true,
+          "matchedOn": "4.7.2"
+        },
+        {
+          "id": "latency",
+          "statement": "Kestrel's measured p95 telemetry delivery latency is 340 ms, inside the 500 ms limit.",
+          "hit": true,
+          "matchedOn": "340 ms"
+        },
+        {
+          "id": "lead_time",
+          "statement": "Kestrel's hardware lead time for the full 400-unit order is 21 days, inside the 30-day window.",
+          "hit": true,
+          "matchedOn": "21 days"
+        },
+        {
+          "id": "orbaline_outage",
+          "statement": "Orbaline is disqualified by its unplanned platform outage of 14 hours on 3 March 2026, which breaches the four-hour reliability constraint.",
+          "hit": false,
+          "matchedOn": null
+        },
+        {
+          "id": "vantor_residency",
+          "statement": "Vantor is disqualified because its system of record is in Columbus, Ohio, outside the EU - independently of its Annex B-only certification and its 620 ms p95.",
+          "hit": false,
+          "matchedOn": null
+        }
+      ]
+    },
+    "totalCost": {
+      "inputTokens": 1060,
+      "outputTokens": 552,
+      "inputCost": 0.000159,
+      "outputCost": 0.0003312,
+      "total": 0.0004902
+    },
+    "modelCalls": 1,
+    "searchQueries": 0,
+    "elapsedMs": 1569,
+    "memoryUsed": true,
+    "memoryRecall": "[episodes] On 2026-08-07 03:04 UTC, secondrun-procurement-1786071365505 initiated a procurement recommendation for Meridian Haulage's telematics platform replacement. The recommendation was for Kestrel Telemetry's FleetLink 3 platform. The per-truck monthly price for 400 units would be €18.40, with a base tier price of €16.90 and a cross-border corridor supplement of €1.50. The platform satisfies the DE/PL cross-border certification requirement as per Annex C (registered in ECTR-NL-0412). The minimum certified firmware build for FleetLink 3 is 4.7.2. The measured p95 telemetry latency is 340 ms, well under the 500 ms ceiling. The hardware lead time for 400 units is 21 days. Vantor was rejected due to a disqualifying fact, which was not specified.",
+    "used": {
+      "searches": 0,
+      "queries": 0,
+      "queryUtilization": 0
+    }
+  },
+  "reductionPercent": 86.06218279524033,
+  "equivalent": true,
+  "divergedOn": [],
+  "costBasis": "Dollar figures are published Groq list prices multiplied by measured token counts from the API usage field. Free-tier usage is not billed — this is real arithmetic on real measurements, not money that left an account.",
+  "provenance": "Reshaped from a measured run: gap-test-2026-08-07T03-04-29-493Z.json. No figure was recomputed or invented."
+}
