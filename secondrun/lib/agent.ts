@@ -24,7 +24,13 @@ import type {
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { searchCorpus, formatHits } from './corpus';
+import {
+  searchCorpus,
+  formatHits,
+  resetSearchStats,
+  sourceUsed,
+  type SourceUsed,
+} from './corpus';
 import { costOf, sumCosts, type CostBreakdown } from './pricing';
 import { scoreAgainstKey, type AnswerKey, type ScoreResult } from './score';
 import { addMessages, flush, searchAgentMemory } from './everos';
@@ -51,6 +57,13 @@ export interface AgentRun {
   modelCalls: number;
   searchQueries: number;
   elapsedMs: number;
+  /**
+   * Which store this run's searches actually hit. Recorded, not assumed: the
+   * demo replays a saved run, so without this the page could claim a Snowflake
+   * integration for a run that quietly fell back to local files. 'none' is the
+   * expected value for the memory-backed run — it never searches at all.
+   */
+  corpusSource: SourceUsed;
   /**
    * What this run actually consumed of the shared ALLOWANCE. Both modes are
    * given the same budget; this is how much of it each one spent.
@@ -139,7 +152,7 @@ interface QueryBudget {
   remaining: number;
 }
 
-function runTool(args: { queries?: string[] }, budget: QueryBudget): string {
+async function runTool(args: { queries?: string[] }, budget: QueryBudget): Promise<string> {
   const asked = args.queries ?? [];
   const allowed = asked.slice(0, Math.max(0, budget.remaining));
   budget.remaining -= allowed.length;
@@ -148,9 +161,13 @@ function runTool(args: { queries?: string[] }, budget: QueryBudget): string {
     return `Query budget exhausted for this turn (${MAX_QUERIES_PER_TURN} maximum). Use what you have, or ask again next turn.`;
   }
 
-  const body = allowed
-    .map((q) => `### Results for: ${q}\n${formatHits(searchCorpus(q, TOP_K))}`)
-    .join('\n\n');
+  // Sequential, not Promise.all: the queries share one Snowflake connection and
+  // the ordering keeps a run's trace readable.
+  const sections: string[] = [];
+  for (const q of allowed) {
+    sections.push(`### Results for: ${q}\n${formatHits(await searchCorpus(q, TOP_K))}`);
+  }
+  const body = sections.join('\n\n');
 
   const dropped = asked.length - allowed.length;
   return dropped > 0
@@ -350,6 +367,8 @@ export async function runAgent(
   const agentId = opts.agentId ?? AGENT_ID;
   const api = client();
   const startedAt = Date.now();
+  // Per-run, so the two modes report their own retrieval independently.
+  resetSearchStats();
 
   // --- optimized only: recall before doing any work at all -----------------
   let memoryRecall = '';
@@ -412,7 +431,7 @@ export async function runAgent(
       } catch {
         /* malformed args — hand back nothing and let the model recover */
       }
-      const result = runTool(args, budget);
+      const result = await runTool(args, budget);
       evidence += `\n${result}`;
       messages.push({ role: 'tool', tool_call_id: call.id, content: result });
     }
@@ -494,6 +513,7 @@ export async function runAgent(
     modelCalls: steps.length,
     searchQueries,
     elapsedMs: Date.now() - startedAt,
+    corpusSource: sourceUsed(),
     used: {
       searches: steps.filter((s) => s.label.startsWith('Searching')).length,
       queries: searchQueries,

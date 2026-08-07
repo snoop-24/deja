@@ -21,7 +21,13 @@
 
 import OpenAI from 'openai';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { searchCorpus, formatHits } from '../secondrun/lib/corpus.ts';
+import {
+  searchCorpus,
+  formatHits,
+  resetSearchStats,
+  sourceUsed,
+} from '../secondrun/lib/corpus.ts';
+import { closeSnowflake } from '../secondrun/lib/snowflake.ts';
 import { costOf, sumCosts, reductionPercent, formatUSD } from '../secondrun/lib/pricing.ts';
 import { scoreAgainstKey, isEquivalent, divergence } from '../secondrun/lib/score.ts';
 import { addMessages, flush, searchAgentMemory, isUp } from '../secondrun/lib/everos.ts';
@@ -148,7 +154,7 @@ const TOOLS = [
  * for two queries in a single call. Anything over budget is refused with a
  * message the model can act on rather than silently dropped.
  */
-function runTool(args, budget) {
+async function runTool(args, budget) {
   const asked = args.queries ?? [];
   const allowed = asked.slice(0, Math.max(0, budget.remaining));
   budget.remaining -= allowed.length;
@@ -157,9 +163,11 @@ function runTool(args, budget) {
     return `Query budget exhausted for this turn (${MAX_QUERIES_PER_TURN} queries maximum). Use what you have, or ask again next turn.`;
   }
 
-  const body = allowed
-    .map((q) => `### Results for: ${q}\n${formatHits(searchCorpus(q, TOP_K))}`)
-    .join('\n\n');
+  const sections = [];
+  for (const q of allowed) {
+    sections.push(`### Results for: ${q}\n${formatHits(await searchCorpus(q, TOP_K))}`);
+  }
+  const body = sections.join('\n\n');
 
   const dropped = asked.length - allowed.length;
   return dropped > 0
@@ -352,6 +360,8 @@ async function runLoop({ label, system, priorNotes }) {
 
   const steps = [];
   const startedAt = Date.now();
+  // Per-run, so each run reports the store its own searches actually hit.
+  resetSearchStats();
   let finalOutput = '';
 
   // Conservative first guess; after step one we use the real previous prompt
@@ -411,7 +421,7 @@ async function runLoop({ label, system, priorNotes }) {
       messages.push({
         role: 'tool',
         tool_call_id: call.id,
-        content: runTool(args, budget),
+        content: await runTool(args, budget),
       });
     }
 
@@ -473,6 +483,9 @@ async function runLoop({ label, system, priorNotes }) {
     searchCalls: steps.reduce((n, s) => n + s.toolCalls, 0),
     queriesIssued: steps.reduce((n, s) => n + s.queries, 0),
     elapsedMs: Date.now() - startedAt,
+    // Observed, not configured: a run that fell back to local files mid-flight
+    // must not be able to report Snowflake. 'none' means it never searched.
+    corpusSource: sourceUsed(),
   };
 }
 
@@ -664,7 +677,11 @@ function renderRecall(data) {
   return out.join('\n\n');
 }
 
-main().catch((e) => {
-  console.error('\nFAILED:', e.message);
-  process.exit(1);
-});
+main()
+  // The pooled Snowflake connection keeps the event loop alive otherwise.
+  .then(() => closeSnowflake())
+  .catch(async (e) => {
+    console.error('\nFAILED:', e.message);
+    await closeSnowflake().catch(() => {});
+    process.exit(1);
+  });

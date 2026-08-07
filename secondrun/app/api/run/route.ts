@@ -51,6 +51,12 @@ export interface RunResponse {
   divergedOn: string[];
   /** Stated on screen: free-tier usage is not billed. */
   costBasis: string;
+  /**
+   * Where the corpus the agent searched actually lives. Read off the baseline's
+   * observed retrieval, not off configuration — see AgentRun.corpusSource. The
+   * demo may only claim Snowflake when this says so.
+   */
+  corpusStore: AgentRun['corpusSource'];
 }
 
 export async function POST(request: Request) {
@@ -83,6 +89,9 @@ export async function POST(request: Request) {
         'Dollar figures are published Groq list prices multiplied by measured token ' +
         'counts from the API usage field. Free-tier usage is not billed — this is real ' +
         'arithmetic on real measurements, not money that left an account.',
+      // The baseline is the run that actually searches; the optimized run reports
+      // 'none' because it never touches the corpus at all.
+      corpusStore: baseline.corpusSource,
     };
 
     // Recorded so the demo can replay without live calls. Best-effort: failing

@@ -1,20 +1,33 @@
 /**
- * The agent's only tool: search over a committed local corpus.
+ * The agent's only tool: search over a fixed corpus held in Snowflake.
  *
  * Deliberately not a web search API. Reasons, in order of importance:
  *   1. Deterministic and repeatable — the same query returns the same passages
  *      every time, so a cost comparison between two runs is a fair test.
- *   2. No third-party call during the demo, so venue wifi cannot break it.
- *   3. No extra API key.
+ *   2. A fixed corpus, so nothing changes underneath a measurement.
+ *   3. No extra model.
  *
- * The cost being measured is still real: it is Groq token usage on real model
- * calls. Only the retrieval is local.
+ * WHERE THE ROWS LIVE. The corpus is loaded into Snowflake by
+ * scripts/load-corpus-to-snowflake.mjs and searched there: Snowflake computes
+ * the inverse document frequencies, the ranking and the top-K. The committed
+ * markdown in data/corpus/ is the source the loader reads from, and doubles as
+ * an offline fallback (CORPUS_SOURCE=local) so a dead network cannot brick a
+ * live run.
+ *
+ * THE TWO PATHS MUST AGREE. Having a fallback is only honest if it returns the
+ * same passages, so scripts/verify-corpus-parity.mjs asserts hit-for-hit
+ * equality between the SQL and local implementations. Run it after any change
+ * to the scoring, and before recording a run. Every recorded run states which
+ * source it used — see corpusSource().
  *
  * Scoring is plain lexical overlap. There is no model in this file.
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+// Explicit .ts extension: this module is imported both by the Next bundler and
+// directly by Node in ../scripts, and Node's ESM loader will not guess it.
+import { isSnowflakeConfigured, query } from './snowflake.ts';
 
 export interface Chunk {
   /** Source filename, shown to the agent so it can cite. */
@@ -38,7 +51,12 @@ const STOPWORDS = new Set([
   'their', 'has', 'have', 'per', 'not', 'any', 'all', 'if', 'can',
 ]);
 
-function tokenize(text: string): string[] {
+/**
+ * Exported because the loader script tokenizes with this exact function when it
+ * builds the inverted index in Snowflake. Reimplementing this in SQL would make
+ * the two paths silently drift; sharing it makes parity structural.
+ */
+export function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9.\-/]+/)
@@ -76,11 +94,123 @@ export function loadCorpus(): Chunk[] {
   return chunks;
 }
 
+export type CorpusSource = 'snowflake' | 'local';
+
 /**
- * Lexical search. Term frequency weighted by inverse document frequency,
- * with a small bonus for terms appearing in the section heading.
+ * Which store a search will hit. Recorded into every run artifact, so a replay
+ * can never claim an integration the measured run did not actually use.
+ * Explicit CORPUS_SOURCE wins; otherwise Snowflake when credentials exist.
  */
-export function searchCorpus(query: string, topK = 3): SearchHit[] {
+export function corpusSource(): CorpusSource {
+  const explicit = process.env.CORPUS_SOURCE?.toLowerCase();
+  if (explicit === 'local' || explicit === 'snowflake') return explicit;
+  return isSnowflakeConfigured() ? 'snowflake' : 'local';
+}
+
+/**
+ * Lexical search, executed by Snowflake.
+ *
+ * The arithmetic is identical to searchCorpusLocal below: for each query term
+ * present in a chunk, add ln(N / df), and half as much again when the term also
+ * appears in the section heading. Ties break on chunk_id, which matches the
+ * stable sort on the local path.
+ */
+async function searchCorpusSnowflake(q: string, topK: number): Promise<SearchHit[]> {
+  const terms = [...new Set(tokenize(q))];
+  if (terms.length === 0) return [];
+
+  const rows = await query<{
+    DOC: string;
+    SECTION: string;
+    BODY: string;
+    SCORE: number;
+  }>(
+    `WITH q AS (
+       SELECT value::string AS term
+       FROM TABLE(FLATTEN(input => PARSE_JSON(?)))
+     ),
+     n AS (SELECT COUNT(*) AS total FROM CORPUS_CHUNKS),
+     df AS (
+       SELECT t.term, COUNT(DISTINCT t.chunk_id) AS df
+       FROM CORPUS_TERMS t JOIN q ON q.term = t.term
+       GROUP BY t.term
+     )
+     SELECT c.doc AS DOC, c.section AS SECTION, c.body AS BODY,
+            SUM(
+              LN(n.total / df.df)
+              * IFF(CONTAINS(LOWER(c.section), t.term), 1.5, 1.0)
+            ) AS SCORE
+     FROM CORPUS_TERMS t
+     JOIN df ON df.term = t.term
+     JOIN CORPUS_CHUNKS c ON c.chunk_id = t.chunk_id
+     CROSS JOIN n
+     GROUP BY c.chunk_id, c.doc, c.section, c.body
+     HAVING SCORE > 0
+     ORDER BY SCORE DESC, MIN(c.chunk_id) ASC
+     LIMIT ?`,
+    [JSON.stringify(terms), topK],
+  );
+
+  return rows.map((r) => ({
+    doc: r.DOC,
+    section: r.SECTION,
+    text: r.BODY,
+    score: r.SCORE,
+  }));
+}
+
+/** What a run's searches were actually served by. 'none' = it never searched. */
+export type SourceUsed = CorpusSource | 'mixed' | 'none';
+
+const served = { snowflake: 0, local: 0 };
+
+export function resetSearchStats(): void {
+  served.snowflake = 0;
+  served.local = 0;
+}
+
+/**
+ * Which store actually answered this run's queries. Derived from what happened,
+ * never from configuration — a run that fell back mid-flight must not be able
+ * to report the source it intended to use.
+ */
+export function sourceUsed(): SourceUsed {
+  if (served.snowflake > 0 && served.local > 0) return 'mixed';
+  if (served.snowflake > 0) return 'snowflake';
+  if (served.local > 0) return 'local';
+  return 'none';
+}
+
+/**
+ * The agent's search tool. Hits Snowflake unless told otherwise.
+ *
+ * A failed Snowflake call falls back to the committed files rather than killing
+ * a run in front of an audience — but it says so on stderr, it is counted, and
+ * the fallback is only defensible because parity is asserted before recording.
+ */
+export async function searchCorpus(q: string, topK = 3): Promise<SearchHit[]> {
+  if (corpusSource() === 'local') {
+    served.local += 1;
+    return searchCorpusLocal(q, topK);
+  }
+
+  try {
+    const hits = await searchCorpusSnowflake(q, topK);
+    served.snowflake += 1;
+    return hits;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[corpus] Snowflake search failed, falling back to local: ${message}`);
+    served.local += 1;
+    return searchCorpusLocal(q, topK);
+  }
+}
+
+/**
+ * Reference implementation over the committed markdown. Term presence weighted
+ * by inverse document frequency, with a bonus for section-heading matches.
+ */
+export function searchCorpusLocal(query: string, topK = 3): SearchHit[] {
   const chunks = loadCorpus();
   const terms = [...new Set(tokenize(query))];
   if (terms.length === 0) return [];

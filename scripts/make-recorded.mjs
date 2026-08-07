@@ -64,6 +64,10 @@ function toAgentRun(r, mode, memoryRecall) {
     modelCalls: r.steps.length,
     searchQueries: queries,
     elapsedMs: r.elapsedMs,
+    // Copied from the transcript, never inferred. A transcript predating the
+    // Snowflake corpus has no such field, and 'unknown' is the honest value —
+    // the demo must not imply an integration the run cannot evidence.
+    corpusSource: r.corpusSource ?? 'unknown',
     memoryUsed: mode === 'optimized' && Boolean(memoryRecall),
     memoryRecall: mode === 'optimized' ? (memoryRecall ?? '') : '',
     used: {
@@ -106,6 +110,7 @@ console.log(`source      ${src.split('/').pop()}`);
 console.log(`model       ${payload.model}`);
 console.log(`baseline    ${baseline.score.score}/${baseline.score.outOf}  ${baseline.modelCalls} calls  ${baseline.used.queries} queries  $${baseline.totalCost.total.toFixed(4)}`);
 console.log(`optimized   ${optimized.score.score}/${optimized.score.outOf}  ${optimized.modelCalls} calls  ${optimized.used.queries} queries  $${optimized.totalCost.total.toFixed(4)}`);
+console.log(`corpus      baseline: ${baseline.corpusSource}   optimized: ${optimized.corpusSource}`);
 console.log(`reduction   ${payload.reductionPercent.toFixed(1)}%`);
 console.log(`equivalent  ${payload.equivalent ? 'YES' : 'NO — ' + payload.divergedOn.join(', ')}`);
 console.log(`\nwrote ${out}`);

@@ -9,6 +9,10 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // lib/ is imported both by the Next bundler and directly by Node in
+    // ../scripts, and Node's ESM loader requires the explicit extension.
+    // Safe with noEmit: it only permits a form TS would otherwise reject.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
