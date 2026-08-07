@@ -42,7 +42,9 @@ secondrun/              the Next.js app (app root; run npm from here)
   lib/pricing.ts        Groq list prices + deterministic cost arithmetic  DONE
   lib/score.ts          answer-key scoring, no LLM judging                DONE
   lib/everos.ts         EverOS memory client, retries on index lag        DONE
-  lib/agent.ts          the agent loop, baseline vs optimized             TODO
+  lib/snowflake.ts      Snowflake connection for the corpus               DONE
+  lib/corpus.ts         the agent's only tool — searches Snowflake        DONE
+  lib/agent.ts          the agent loop, baseline vs optimized             DONE
   .env.local            Groq key (gitignored — exists locally, not in git)
 .venv-everos/           Python env for the EverOS server (gitignored)
 ```
@@ -59,6 +61,16 @@ To avoid collisions when two instances run at once:
 
 ## Things that took work to find out
 
+- **Snowflake holds the corpus the agent searches.** `npm run corpus:load`
+  builds `CORPUS_CHUNKS` + `CORPUS_TERMS` from `data/corpus/*.md`;
+  `npm run corpus:verify` proves the SQL ranking matches the local one hit for
+  hit. Run verify before recording any run — the local fallback is only
+  defensible because the two paths are the same search. `CORPUS_SOURCE=local`
+  forces the offline path.
+- **Every run records the store it actually searched**, observed not configured
+  (`AgentRun.corpusSource`, `RunResponse.corpusStore`). The demo may only claim
+  Snowflake when a *recorded* run says `snowflake`. The optimized run says
+  `none` — it never searches, which is the point.
 - **EverOS won't boot without an LLM key** — hard `LLMNotConfiguredError` at
   startup, not a soft failure. Config lives at `~/.everos/everos.toml`.
 - **`[llm]` is pointed at Groq** (OpenAI-protocol compatible). One key serves

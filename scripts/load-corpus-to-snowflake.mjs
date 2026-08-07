@@ -31,6 +31,14 @@ if (!cfg) {
 console.log(`account   ${cfg.account}`);
 console.log(`target    ${cfg.database}.${cfg.schema}  (warehouse ${cfg.warehouse})`);
 
+// Smallest size, suspends after a minute idle, starts suspended. The corpus is
+// 90 rows; anything larger would only burn trial credits faster.
+await query(`CREATE WAREHOUSE IF NOT EXISTS ${cfg.warehouse}
+  WAREHOUSE_SIZE = XSMALL
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE`);
+
 await query(`CREATE DATABASE IF NOT EXISTS ${cfg.database}`);
 await query(`CREATE SCHEMA IF NOT EXISTS ${cfg.database}.${cfg.schema}`);
 await query(`USE SCHEMA ${cfg.database}.${cfg.schema}`);

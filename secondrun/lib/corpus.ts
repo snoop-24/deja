@@ -97,6 +97,24 @@ export function loadCorpus(): Chunk[] {
 export type CorpusSource = 'snowflake' | 'local';
 
 /**
+ * Scores are sums of logarithms, and Snowflake and V8 accumulate them in
+ * different orders — measured drift is up to ~3e-8. Real ranking differences in
+ * this corpus are order 0.1 or larger, so rounding here is far below anything
+ * meaningful and far above the noise.
+ *
+ * This is not cosmetic. Several queries produce genuine exact ties, which both
+ * paths resolve by chunk order. Without rounding, floating-point noise would
+ * turn a tie into a hairline score difference on one side only, and the two
+ * paths could order the same two passages differently. Rounding keeps ties
+ * exactly tied, so the tiebreak decides on both sides identically.
+ */
+const SCORE_DP = 6;
+
+function roundScore(x: number): number {
+  return Math.round(x * 10 ** SCORE_DP) / 10 ** SCORE_DP;
+}
+
+/**
  * Which store a search will hit. Recorded into every run artifact, so a replay
  * can never claim an integration the measured run did not actually use.
  * Explicit CORPUS_SOURCE wins; otherwise Snowflake when credentials exist.
@@ -136,10 +154,10 @@ async function searchCorpusSnowflake(q: string, topK: number): Promise<SearchHit
        GROUP BY t.term
      )
      SELECT c.doc AS DOC, c.section AS SECTION, c.body AS BODY,
-            SUM(
+            ROUND(SUM(
               LN(n.total / df.df)
               * IFF(CONTAINS(LOWER(c.section), t.term), 1.5, 1.0)
-            ) AS SCORE
+            ), ${SCORE_DP}) AS SCORE
      FROM CORPUS_TERMS t
      JOIN df ON df.term = t.term
      JOIN CORPUS_CHUNKS c ON c.chunk_id = t.chunk_id
@@ -234,9 +252,11 @@ export function searchCorpusLocal(query: string, topK = 3): SearchHit[] {
       score += idf;
       if (heading.includes(term)) score += idf * 0.5;
     }
-    return { ...chunk, score };
+    return { ...chunk, score: roundScore(score) };
   });
 
+  // Stable sort: exact ties keep chunk order, which is what chunk_id preserves
+  // on the Snowflake side. See SCORE_DP.
   return hits
     .filter((h) => h.score > 0)
     .sort((a, b) => b.score - a.score)

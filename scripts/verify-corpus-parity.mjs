@@ -51,35 +51,61 @@ const QUERIES = [
 ];
 
 const TOP_K = 2; // what the agent is allowed per query
+
+/**
+ * WHAT IS ASSERTED, AND WHAT IS NOT.
+ *
+ * Asserted: the two paths return the same passages in the same order. That is
+ * the whole of what the agent consumes — formatHits shows it the document, the
+ * section and the text, never a score, and no score reaches the demo. If the
+ * ordered passage list matches, the agent could not have told the two apart.
+ *
+ * Not asserted: bit-identical scores. Snowflake and V8 accumulate the same sum
+ * of logarithms in different orders, so they disagree around the last digit.
+ * Both paths round to SCORE_DP (see lib/corpus.ts), which keeps genuine ties
+ * tied so the chunk-order tiebreak decides identically on both sides — but a
+ * value landing exactly on a rounding boundary can still round opposite ways.
+ * Observed drift is printed below so nobody has to assume it is zero.
+ *
+ * Checking one more hit than the agent is allowed also catches a near-boundary
+ * disagreement about which passage just missed the cut.
+ */
 let failures = 0;
+let worstDrift = 0;
 
 for (const q of QUERIES) {
-  const [remote, local] = [await searchCorpus(q, TOP_K), searchCorpusLocal(q, TOP_K)];
+  const [remote, local] = [
+    await searchCorpus(q, TOP_K + 1),
+    searchCorpusLocal(q, TOP_K + 1),
+  ];
 
-  const key = (hits) => hits.map((h) => `${h.doc}::${h.section}`).join(' | ') || '(none)';
-  const same = key(remote) === key(local);
+  const order = (hits) =>
+    hits.map((h) => `${h.doc}::${h.section}`).join(' | ') || '(none)';
+  const shown = (hits) =>
+    hits.slice(0, TOP_K).map((h) => `${h.doc}::${h.section}`).join(' | ') || '(none)';
 
-  // Scores are floating point summed in a different order on each side, so
-  // compare them with a tolerance rather than for exact equality. Ranking is
-  // what the agent sees; identical ranking is the property that matters.
-  const drift = remote.length === local.length
-    ? Math.max(0, ...remote.map((h, i) => Math.abs(h.score - local[i].score)))
-    : Infinity;
+  if (remote.length === local.length) {
+    for (let i = 0; i < remote.length; i += 1) {
+      worstDrift = Math.max(worstDrift, Math.abs(remote[i].score - local[i].score));
+    }
+  }
 
-  if (!same || drift > 1e-9) {
+  if (order(remote) !== order(local)) {
     failures += 1;
     console.log(`FAIL  ${q}`);
-    console.log(`      snowflake  ${key(remote)}`);
-    console.log(`      local      ${key(local)}`);
-    if (same) console.log(`      score drift ${drift}`);
+    console.log(`      snowflake  ${order(remote)}`);
+    console.log(`      local      ${order(local)}`);
   } else {
-    console.log(`ok    ${q}  ->  ${key(remote)}`);
+    console.log(`ok    ${q}  ->  ${shown(remote)}`);
   }
 }
 
 console.log(
   failures === 0
-    ? `\nPARITY HOLDS across ${QUERIES.length} queries. Snowflake and the committed files are the same search.`
+    ? `\nPARITY HOLDS across ${QUERIES.length} queries — same passages, same order.` +
+        `\nWorst score disagreement ${worstDrift.toExponential(2)}, which changed no ranking.` +
+        `\nSnowflake and the committed files are the same search, so the offline fallback` +
+        `\ncannot change what the agent sees.`
     : `\n${failures}/${QUERIES.length} queries DIVERGED. Do not record a run until this is zero.`,
 );
 
